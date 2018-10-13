@@ -4,6 +4,44 @@ using System.Linq;
 
 namespace FlowChain
 {
+    internal abstract class BaseCall
+    {
+        public abstract void Execute();
+    }
+
+    internal class Call : BaseCall
+    {
+        public Call(Action step) => Step = step;
+        protected Action Step { get; set; }
+        public override void Execute() => Step();
+    }
+
+    internal class IfElseCall : BaseCall
+    {
+        public IfElseCall(Func<bool> predicate, Action ifTrue, Action ifFalse)
+        {
+            Predicate = predicate;
+            IfTrue = ifTrue;
+            IfFalse = ifFalse;
+        }
+
+        protected Func<bool> Predicate { get; set; }
+        protected Action IfTrue { get; set; }
+        protected Action IfFalse { get; set; }
+
+        public override void Execute()
+        {
+            if (Predicate())
+            {
+                IfTrue();
+            }
+            else
+            {
+                IfFalse();
+            }
+        }
+    }
+
     internal static class Say
     {
         public static readonly Action HoldOnPlease = () => Msg("Press any key to continue");
@@ -18,18 +56,24 @@ namespace FlowChain
 
     internal class Chain
     {
-        protected Chain() => _steps = new List<Action>();
+        protected Chain() => _steps = new List<BaseCall>();
 
-        protected List<Action> _steps { get; set; }
+        protected List<BaseCall> _steps { get; set; }
 
         public string ChainTitle { get; set; }
 
         public static Chain Begin() => Begin(string.Empty);
-        public static Chain Begin(string title) => new Chain() { ChainTitle = title };
+        public static Chain Begin(string title) => new Chain { ChainTitle = title };
 
         public Chain AddAction(Action action)
         {
-            _steps.Add(action);
+            _steps.Add(new Call(action));
+            return this;
+        }
+
+        public Chain AddIfElse(Func<bool> predicate, Action ifTrue, Action ifFalse)
+        {
+            _steps.Add(new IfElseCall(predicate, ifTrue, ifFalse));
             return this;
         }
 
@@ -46,7 +90,7 @@ namespace FlowChain
 
         public void Complete()
         {
-            _steps.ForEach(step => step());
+            _steps.ForEach(call => call.Execute());
             _steps = null;
             Environment.ExitCode = 0;
         }
@@ -65,16 +109,19 @@ namespace FlowChain
         private static void Main(string[] args) =>
             Chain
                 .Begin()
-                    .ShowLine("I really miss you")
-                    .ShowLine("turbo pascal")
-                    .ShowLine(":,(")
-                    .SubChain(
-                        Chain
-                            .Begin("Post scriptum")
-                            .ShowLine("But please keep being history!")
-                    )
-                    .ShowLine("That's all!")
-                    .Pause()
+                .ShowLine("I really miss you")
+                .ShowLine("turbo pascal")
+                .ShowLine(":,(")
+                .SubChain(
+                    Chain
+                        .Begin("Post scriptum")
+                        .ShowLine("But please keep being history!")
+                )
+                .AddIfElse(
+                    () => true, 
+                    () => Say.This("That's all"), 
+                    () => Say.This("To be continued"))
+                .Pause()
                 .Complete();
     }
 }
