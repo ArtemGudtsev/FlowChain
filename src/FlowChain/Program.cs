@@ -47,6 +47,7 @@ namespace FlowChain
         public void Complete()
         {
             _steps.ForEach(step => step());
+            _steps = null;
             Environment.ExitCode = 0;
         }
 
