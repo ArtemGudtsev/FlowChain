@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace FlowChain
 {
-    static class Say
+    internal static class Say
     {
         public static readonly Action HoldOnPlease = () => Msg("Press any key to continue");
         public static readonly Action<string> SubChainCalling = (subChainTitle) 
@@ -16,7 +16,7 @@ namespace FlowChain
         private static void Msg(string msg) => Console.WriteLine(msg);
     }
 
-    class Chain
+    internal class Chain
     {
         protected Chain() => _steps = new List<Action>();
 
@@ -59,10 +59,10 @@ namespace FlowChain
             Console.ReadKey();
         });
     }
-    
-    class Program
+
+    internal class Program
     {
-        static void Main(string[] args) =>
+        private static void Main(string[] args) =>
             Chain
                 .Begin()
                     .ShowLine("I really miss you")
@@ -73,6 +73,7 @@ namespace FlowChain
                             .Begin("Post scriptum")
                             .ShowLine("But please keep being history!")
                     )
+                    .ShowLine("That's all!")
                     .Pause()
                 .Complete();
     }
