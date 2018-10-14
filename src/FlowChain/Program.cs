@@ -44,7 +44,7 @@ namespace FlowChain
         }
     }
 
-    internal static class Say
+    internal static class Log
     {
         public static void SetMsgMethod(Action<string> msg) => Msg = msg;
         public static readonly Action HoldOnPlease = () => Msg("Press any key to continue");
@@ -65,7 +65,6 @@ namespace FlowChain
         public string ChainTitle { get; set; }
         public static Chain Begin() => Begin(string.Empty);
         public static Chain Begin(string title) => new Chain { ChainTitle = title };
-        public Chain ShowLine(string line) => AddAction(() => Console.WriteLine(line));
 
         public Chain AddAction(Action action)
         {
@@ -83,9 +82,9 @@ namespace FlowChain
         {
             var titleIsHere = !string.IsNullOrEmpty(subChain.ChainTitle);
 
-            if (titleIsHere) AddAction(() => Say.SubChainCalling(subChain.ChainTitle));
+            if (titleIsHere) AddAction(() => Log.SubChainCalling(subChain.ChainTitle));
             _steps.AddRange(subChain._steps);
-            if (titleIsHere) AddAction(() => Say.SubChainCompleted(subChain.ChainTitle));
+            if (titleIsHere) AddAction(() => Log.SubChainCompleted(subChain.ChainTitle));
 
             return this;
         }
@@ -99,16 +98,18 @@ namespace FlowChain
 
         public Chain Pause() => AddAction(() =>
         {
-            Say.HoldOnPlease();
+            Log.HoldOnPlease();
             Console.ReadKey();
         });
+
+        public Chain ShowLine(string line) => AddAction(() => Console.WriteLine(line));
     }
 
     internal class Program
     {
         private static void Main(string[] args)
         {
-            Say.SetMsgMethod(msg => Console.WriteLine(msg));
+            Log.SetMsgMethod(msg => Console.WriteLine(msg));
             Chain
                 .Begin()
                 .ShowLine("I really miss you")
@@ -121,8 +122,8 @@ namespace FlowChain
                 )
                 .AddIfElse(
                     () => true,
-                    () => Say.This("That's all"),
-                    () => Say.This("To be continued"))
+                    () => Log.This("That's all"),
+                    () => Log.This("To be continued"))
                 .Pause()
                 .Complete();
         }
