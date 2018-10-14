@@ -4,20 +4,26 @@ using System.Linq;
 
 namespace FlowChain
 {
-    internal abstract class BaseCall
+    internal interface ICall
     {
-        public abstract void Execute();
+        void Execute();
     }
 
-    internal class Call : BaseCall
+    internal class Call : ICall
     {
         public Call(Action step) => Step = step;
+        
         protected Action Step { get; set; }
-        public override void Execute() => Step();
+
+        void ICall.Execute() => Step();
     }
 
-    internal class IfElseCall : BaseCall
+    internal class IfElseCall : ICall
     {
+        protected Func<bool> Predicate { get; set; }
+        protected Action IfTrue { get; set; }
+        protected Action IfFalse { get; set; }
+
         public IfElseCall(Func<bool> predicate, Action ifTrue, Action ifFalse)
         {
             Predicate = predicate;
@@ -25,11 +31,7 @@ namespace FlowChain
             IfFalse = ifFalse;
         }
 
-        protected Func<bool> Predicate { get; set; }
-        protected Action IfTrue { get; set; }
-        protected Action IfFalse { get; set; }
-
-        public override void Execute()
+        void ICall.Execute()
         {
             if (Predicate())
             {
@@ -44,6 +46,7 @@ namespace FlowChain
 
     internal static class Say
     {
+        public static void SetMsgMethod(Action<string> msg) => Msg = msg;
         public static readonly Action HoldOnPlease = () => Msg("Press any key to continue");
         public static readonly Action<string> SubChainCalling = (subChainTitle) 
             => Msg($"### Calling \"{subChainTitle}\" subchain...");
@@ -51,19 +54,18 @@ namespace FlowChain
             => Msg($"### Subchain \"{subChainTitle}\" completed.");
         public static readonly Action<string> This = (msg) => Msg(msg);
 
-        private static void Msg(string msg) => Console.WriteLine(msg);
+        private static Action<string> Msg { get; set; }
     }
 
     internal class Chain
     {
-        protected Chain() => _steps = new List<BaseCall>();
-
-        protected List<BaseCall> _steps { get; set; }
+        protected Chain() => _steps = new List<ICall>();
+        protected List<ICall> _steps { get; set; }
 
         public string ChainTitle { get; set; }
-
         public static Chain Begin() => Begin(string.Empty);
         public static Chain Begin(string title) => new Chain { ChainTitle = title };
+        public Chain ShowLine(string line) => AddAction(() => Console.WriteLine(line));
 
         public Chain AddAction(Action action)
         {
@@ -95,8 +97,6 @@ namespace FlowChain
             Environment.ExitCode = 0;
         }
 
-        public Chain ShowLine(string line) => AddAction(() => Console.WriteLine(line));
-
         public Chain Pause() => AddAction(() =>
         {
             Say.HoldOnPlease();
@@ -106,7 +106,9 @@ namespace FlowChain
 
     internal class Program
     {
-        private static void Main(string[] args) =>
+        private static void Main(string[] args)
+        {
+            Say.SetMsgMethod(msg => Console.WriteLine(msg));
             Chain
                 .Begin()
                 .ShowLine("I really miss you")
@@ -118,10 +120,11 @@ namespace FlowChain
                         .ShowLine("But please keep being history!")
                 )
                 .AddIfElse(
-                    () => true, 
-                    () => Say.This("That's all"), 
+                    () => true,
+                    () => Say.This("That's all"),
                     () => Say.This("To be continued"))
                 .Pause()
                 .Complete();
+        }
     }
 }
