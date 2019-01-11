@@ -4,6 +4,7 @@ using FlowChain.Log;
 
 namespace FlowChain
 {
+    // Example of FlowChain usage in console tool
     internal class Program
     {
         private static void Main(string[] args)
